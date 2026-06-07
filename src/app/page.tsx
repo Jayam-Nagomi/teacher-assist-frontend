@@ -1,65 +1,141 @@
-import Image from "next/image";
+"use client";
+
+import { useTheme } from "next-themes";
+import { Button } from "@/components/ui/button";
+import { Moon, Sun, GraduationCap, Mail, Lock, Loader2 } from "lucide-react";
+import toast from "react-hot-toast";
+import { useState, useEffect } from "react";
+import { Modal } from "@/components/ui/modal";
+import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const { theme, setTheme } = useTheme();
+  const router = useRouter();
+
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSignupOpen, setIsSignupOpen] = useState(false);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // If already logged in, redirect straight to workspaces
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      router.push("/workspaces");
+    }
+  }, [router]);
+
+  const handleAuth = async (e: React.FormEvent, type: "login" | "signup") => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setIsLoading(true);
+
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/${type}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.error || `Failed to ${type}`);
+      }
+
+      localStorage.setItem("token", data.token);
+      toast.success(type === "login" ? "Welcome back!" : "Account created successfully!");
+      router.push("/workspaces");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+      <div className="absolute top-4 right-4">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="rounded-full shadow-sm"
+        >
+          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+      </div>
+
+      <div className="flex items-center space-x-4">
+        <div className="p-4 bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-500/20">
+          <GraduationCap className="w-10 h-10" />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+        <h1 className="text-5xl font-extrabold tracking-tight text-foreground">
+          Teacher Assist
+        </h1>
+      </div>
+
+      <p className="text-muted-foreground text-xl max-w-lg text-center leading-relaxed">
+        A stress-free, beautifully designed grading workspace for your academic years and terms.
+      </p>
+
+      <div className="flex flex-col sm:flex-row items-center gap-4 mt-12 w-full max-w-md">
+        <Button size="lg" className="w-full text-lg h-14 bg-indigo-500 hover:bg-indigo-600 rounded-xl shadow-lg shadow-indigo-500/20 transition-all hover:-translate-y-1" onClick={() => { setIsLoginOpen(true); setEmail(""); setPassword(""); }}>
+          Log In
+        </Button>
+        <Button size="lg" variant="outline" className="w-full text-lg h-14 rounded-xl border-border hover:bg-muted/50 transition-all" onClick={() => { setIsSignupOpen(true); setEmail(""); setPassword(""); }}>
+          Sign Up
+        </Button>
+      </div>
+
+      <Modal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} title="Welcome Back">
+        <form onSubmit={(e) => handleAuth(e, "login")} className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+              <Input type="email" placeholder="teacher@school.edu" className="pl-10" value={email} onChange={e => setEmail(e.target.value)} autoFocus />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+              <Input type="password" placeholder="••••••••" className="pl-10" value={password} onChange={e => setPassword(e.target.value)} />
+            </div>
+          </div>
+          <Button type="submit" disabled={!email || !password || isLoading} className="w-full bg-indigo-500 hover:bg-indigo-600 h-12 text-md mt-4">
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Log In"}
+          </Button>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isSignupOpen} onClose={() => setIsSignupOpen(false)} title="Create your Account">
+        <form onSubmit={(e) => handleAuth(e, "signup")} className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+              <Input type="email" placeholder="teacher@school.edu" className="pl-10" value={email} onChange={e => setEmail(e.target.value)} autoFocus />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+              <Input type="password" placeholder="Choose a secure password" className="pl-10" value={password} onChange={e => setPassword(e.target.value)} />
+            </div>
+          </div>
+          <Button type="submit" disabled={!email || !password || isLoading} className="w-full bg-indigo-500 hover:bg-indigo-600 h-12 text-md mt-4">
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign Up"}
+          </Button>
+        </form>
+      </Modal>
+    </main>
   );
 }
